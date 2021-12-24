@@ -1,0 +1,17 @@
+{
+  "service": {
+    "name": "dnsmasq",
+    "port": 53,
+    "tags": [
+             "traefik.enable=false",
+             "traefik.udp.services.dnsmasq-dns.loadbalancer.server.port=53"
+            ],
+    "check": {
+      "name": "nslookup",
+      "args": ["nslookup", "consul.service.lon", "192.168.1.151"],
+      "interval": "10s",
+      "success_before_passing": 3,
+      "failures_before_critical": 3
+    }
+  }
+}

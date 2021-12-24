@@ -1,0 +1,2 @@
+# Enable forward lookup of the 'lon' domain:
+server=/lon/192.168.1.151#8600

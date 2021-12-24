@@ -1,0 +1,23 @@
+{
+"node_name": "dnsmasq-vm",
+"bind_addr": "{{GetInterfaceIP \"enp0s8\"}}",
+"client_addr": "127.0.0.1 {{ GetPrivateIPs }}",
+"data_dir": "/opt/consul",
+"datacenter": "lon",
+"domain": "lon",
+"disable_remote_exec": false,
+"encrypt": "FYuSUowlxBqt70bigvzxihKsHs7SCbNVFuml5GMPHqY=",
+"encrypt_verify_incoming": true,
+"encrypt_verify_outgoing": true,
+"log_level": "INFO",
+"enable_syslog": true,
+"enable_debug": true,
+"leave_on_terminate": false,
+"skip_leave_on_interrupt": true,
+"rejoin_after_leave": true,
+"advertise_addr": "{{GetInterfaceIP \"enp0s8\"}}",
+"retry_join": [
+  "192.168.1.100",
+  "192.168.1.40"
+  ]
+}

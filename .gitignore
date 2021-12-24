@@ -1,0 +1,3 @@
+.vagrant
+private_key
+*.log
