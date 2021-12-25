@@ -44,10 +44,12 @@ if id consul > /dev/null 2>&1
       echo "user consul exist!"
   else
       useradd -s /sbin/nologin --system -g consul consul
+      if [ ! -f /opt/consul ]; 
+        then
+          mkdir /opt/consul
+          chmod -R 740 /opt/consul
+          chown consul:consul /opt/consul/
+        fi
   fi
 
-if [ ! -f /opt/consul ]; then
-    mkdir /opt/consul
-    chmod -R 740 /opt/consul
-    chown consul:consul /opt/consul/
-fi
+

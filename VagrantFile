@@ -1,30 +1,58 @@
-Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/xenial64"
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
 
- config.vm.hostname = "dnsmasq"
-  config.vm.provider "virtualbox" do |vb|
-    vb.name = "dnsmasq-vm"
-    vb.customize ["modifyvm", :id, "--cpus", "1"]
-    vb.customize ["modifyvm", :id, "--memory", "1024"]
-    vb.customize ["modifyvm", :id, "--usb", "off"]
-    vb.customize ["modifyvm", :id, "--usbehci", "off"]
+VAGRANTFILE_API_VERSION = "2"
+PUBLIC_NET_BRIDGE = 'Realtek PCIe GbE Family Controller #5'
+PIHOLE_PUBLIC_IP =  "192.168.1.100"
+DNSMASQ_PUBLIC_IP = "192.168.1.151"
+
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.synced_folder ".", "/vagrant", mount_options: ["dmode=700,fmode=600"]
+  config.vm.box = "ubuntu/xenial64"
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
+    v.cpus = 1
+    v.customize ["modifyvm", :id, "--usb", "off"]
+    v.customize ["modifyvm", :id, "--usbehci", "off"]
   end
 
-  config.vm.network "public_network", ip: "192.168.1.151", bridge: 'Realtek PCIe GbE Family Controller #5'
+  config.vm.define "dnsmasq" do |d|
+    # d.provider.name = ""
+    config.vm.provider :virtualbox do |vb|
+      vb.name = "dnsmasq-vm"
+    end
+    d.vm.hostname = "dnsmasq"
+    d.vm.network "public_network", ip: DNSMASQ_PUBLIC_IP, bridge: PUBLIC_NET_BRIDGE
 
-  config.vm.provision "shell", inline: <<-SHELL
-    apt-get update
-    apt-get upgrade -y
-    apt-get install dnsmasq -y
-  SHELL
+    d.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get upgrade -y
+      apt-get install dnsmasq -y
+    SHELL
 
-  config.vm.provision "shell", path: "provision.sh"
+    d.vm.provision "shell", path: "provision.sh"
 
-  config.vm.provision "shell", inline: <<-SHELL
-    systemctl enable consul
-    systemctl restart dnsmasq
-    systemctl start consul
-  SHELL
+    d.vm.provision "shell", inline: <<-SHELL
+      systemctl enable consul
+      systemctl restart dnsmasq
+      systemctl start consul
+    SHELL
+  end
 
-
+  config.vm.define "pihole" do |p|
+    # p.provider.name = "pihole"
+    # p.vm.hostname = "pihole"
+    config.vm.provider :virtualbox do |vb|
+      vb.name = "pihole"
+    end
+    p.vm.network "public_network", ip: PIHOLE_PUBLIC_IP, auto_config: false, bridge: PUBLIC_NET_BRIDGE
+    
+    p.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get upgrade -y
+      apt-get install net-tools dnsutils -y
+    SHELL
+    end
 end
