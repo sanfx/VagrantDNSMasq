@@ -5,54 +5,69 @@ VAGRANTFILE_API_VERSION = "2"
 PUBLIC_NET_BRIDGE = 'Realtek PCIe GbE Family Controller #5'
 PIHOLE_PUBLIC_IP =  "192.168.1.100"
 DNSMASQ_PUBLIC_IP = "192.168.1.151"
-
+PIHOLE_PRIVATE_IP = "192.168.56.101"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  config.vm.synced_folder ".", "/vagrant", mount_options: ["dmode=700,fmode=600"]
-  config.vm.box = "ubuntu/xenial64"
-  config.vm.provider "virtualbox" do |v|
-    v.memory = 1024
-    v.cpus = 1
-    v.customize ["modifyvm", :id, "--usb", "off"]
-    v.customize ["modifyvm", :id, "--usbehci", "off"]
-  end
+  config.vm.define "pihole" do |p|
+    p.vm.box = "ubuntu/focal64"
+    p.vm.hostname = "pihole"
+
+    p.vm.network :private_network, ip: PIHOLE_PRIVATE_IP
+    p.vm.network "public_network", ip: PIHOLE_PUBLIC_IP, bridge: PUBLIC_NET_BRIDGE
+
+    p.vm.provider :pihole do |pvb|
+      pvb.memory = 1024
+      pvb.cpus = 1
+      pvb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      pvb.customize ["modifyvm", :id, "--usb", "off"]
+      pvb.customize ["modifyvm", :id, "--usbehci", "off"]
+      pvb.customize ["modifyvm", :id, "--name", "pihole"]
+    end
+
+    p.vm.provision "shell", inline: <<-SHELL
+      cd /home/vagrant
+      wget -O basic-install.sh https://install.pi-hole.net
+      apt-mark hold ubuntu-advantage-tools open-vm-tools
+      apt-get update
+      apt-get upgrade -y
+      apt-get install net-tools dnsutils -y
+    SHELL
+    p.vm.provision "shell", path: "provision.sh"
+  
+    p.vm.provision "shell", inline: <<-SHELL
+    rm -rf /etc/consul.d/services/dnsmasq.service.json
+    consul reload
+    SHELL
+    end
 
   config.vm.define "dnsmasq" do |d|
-    # d.provider.name = ""
-    config.vm.provider :virtualbox do |vb|
-      vb.name = "dnsmasq-vm"
-    end
+    d.vm.synced_folder ".", "/vagrant", mount_options: ["dmode=700,fmode=600"]
+    d.vm.box = "ubuntu/xenial64"
     d.vm.hostname = "dnsmasq"
     d.vm.network "public_network", ip: DNSMASQ_PUBLIC_IP, bridge: PUBLIC_NET_BRIDGE
+    d.vm.provider "virtualbox" do |dvb|
+      dvb.memory = 1024
+      dvb.cpus = 1
+      dvb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      dvb.customize ["modifyvm", :id, "--usb", "off"]
+      dvb.customize ["modifyvm", :id, "--usbehci", "off"]
+      dvb.customize ["modifyvm", :id, "--name", "dnsmasq"]
+    end
+    dnsmasq_pihole =  "server=#{PIHOLE_PRIVATE_IP}"
 
     d.vm.provision "shell", inline: <<-SHELL
+      apt-mark hold ubuntu-advantage-tools open-vm-tools
       apt-get update
       apt-get upgrade -y
       apt-get install dnsmasq -y
     SHELL
 
     d.vm.provision "shell", path: "provision.sh"
-
     d.vm.provision "shell", inline: <<-SHELL
-      systemctl enable consul
-      systemctl restart dnsmasq
-      systemctl start consul
+    rm -rf /etc/consul.d/services/pihole.service.json
     SHELL
   end
 
-  config.vm.define "pihole" do |p|
-    # p.provider.name = "pihole"
-    # p.vm.hostname = "pihole"
-    config.vm.provider :virtualbox do |vb|
-      vb.name = "pihole"
-    end
-    p.vm.network "public_network", ip: PIHOLE_PUBLIC_IP, auto_config: false, bridge: PUBLIC_NET_BRIDGE
-    
-    p.vm.provision "shell", inline: <<-SHELL
-      apt-get update
-      apt-get upgrade -y
-      apt-get install net-tools dnsutils -y
-    SHELL
-    end
+
 end

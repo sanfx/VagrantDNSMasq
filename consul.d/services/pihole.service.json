@@ -1,0 +1,28 @@
+{
+  "service": {
+    "name": "pihole",
+    "tags": [
+             "traefik.enable=true",
+             "traefik.http.routers.pihole-http.rule=Host(`pihole.home.local`)",
+             "traefik.http.routers.pihole-http.entrypoints=http",
+             "traefik.http.services.pihole-https.loadbalancer.server.port=80",
+             "traefik.http.routers.pihole-https.entrypoints=https",
+             "traefik.http.middlewares.do-compress.compress=true",
+             "traefik.http.routers.pihole-https.rule=Host(`pihole.access.devilsan.com`)",
+             "traefik.http.middlewares.add-admin-prefix.addprefix.prefix=/admin",
+             "traefik.http.routers.pihole-https.middlewares=do-compress,add-admin-prefix",
+             "traefik.http.routers.pihole-https.tls=true",
+             "traefik.http.routers.pihole-https.tls.certresolver=linode",
+             "traefik.http.routers.pihole-https.tls.domains[0].main=access.devilsan.com",
+             "traefik.http.routers.pihole-https.tls.domains[0].sans=*.access.devilsan.com"
+            ],
+    "port": 80,
+    "check": {
+      "tcp": "localhost:80",
+      "interval": "10s",
+      "success_before_passing": 3,
+      "failures_before_critical": 3
+    }
+  }
+}
+
